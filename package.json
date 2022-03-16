@@ -1,0 +1,24 @@
+{
+  "dependencies": {
+    "discord.js": "^13.6.0",
+    "dotenv": "^16.0.0"
+  },
+  "name": "discord-study-js",
+  "version": "1.0.0",
+  "description": "디스코드 봇 공부 JS",
+  "main": "index.js",
+  "devDependencies": {
+    "eslint": "^8.11.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "main": "index.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "js"
+  ],
+  "author": "",
+  "license": "ISC"
+}
