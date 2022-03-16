@@ -1,5 +1,4 @@
-// 봇 초대시 bot, application.commands 2개 체크!
-require('dotenv/config') // 선언 X 불러오기만! O
+require('dotenv/config')
 
 const { Client, Intents } = require('discord.js')
 
@@ -8,91 +7,99 @@ const client = new Client({
 })
 
 client.once('ready', async () => {
-/**
- * async -> 비동기
- * 1. 모듈이 비동기로 만들어져 있음
- * 2. 동기로 처리하면 동시에 명령어가 하나만 처리 가능
- * 3. Node.js 구조가 io 관련(http, file...)등이 기본값으로 비동기로 처리하게 되어있음
- */
-    console.log(await client.application.commands.fetch()) // await: 비동기 작업이 완료될때까지 기다리기 = 동기로 작업 -> 반환값(Promise)을 풀어주기 위해서 await 써야 됨
- 
-    // Discord.js 의 거의 모든 함수들은 전부 API 호출
-    // client.application.commands.fetch() << 클라이언트가 사용하는 에플리케이션의 명령어들을 조회
-
-    /**
-     * 동기: 순서대로
-     * 비동기: 동시에 처리
-     * ex.) A(동기) -> B(비동기) -> C(동기): A -> B실행하면서 C
-     * await: 비동기가 다 끝나야 다음으로 넘어감
-     * 이때, 비동기의 반환값은 Promise<...> 타입
-    */
-
-    /**
-     * overload: 같은 이름의 함수이지만, 받는 인수가 다름 (자바, 타입스크립트 ...)
-     * ---
-     * EX] set(commands, guildID) << 2번째로 실행
-     * public set(commands): Promise<Collection<Snowflake, ApplicationCommandScope>>;  // 전역 명령어 만들기
-     * public set(commands, guildId): Promise<Collection<Snowflake, ApplicationCommand>>; // 길드 명령어 만들기
-     * ---
-     * https://discord.com/developers/docs/interactions/application-commands#registering-a-command
-     * Global commands are available on all your app's guilds. Global commands are cached for *1 hour*. // 모든 길드에서 가능하지만 적용까지 1시간 소요 << 실제로 배포할 때
-     * Guild commands are available only within the guild specified on creation. Guild commands update *instantly* // 선택한 길드에서 가능하지만 바로 적용 << 개발할 때
-     */
-    
-    /**
-     * https://discord.js.org/#/docs/discord.js/stable/class/ApplicationCommandManager?scrollTo=set
-     * 타입: Array <ApplicationCommandData> or Array <APIApplicationCommand> << 1번째: 빌더 X / 2번째: 빌더 O (보통 Data 붙어있는건 직접하겠다는 의미)
-     * Array <ApplicationCommandData> 클릭 > 타입: 오브젝트 - {} > 
-     */
-    const commands = [
-        { 
-          name: "ping",
-          /**
-           * https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-naming
-           * command names must match the following regex ^[\w-]{1,32}$ with the unicode flag set. : 유니코드, 알파벳, 1-32자 
-           */
-          description: "테스트"
-        }
-    ]
-
-    const h = client.application.commands.set(commands, process.env.GI)
     console.log('Ready!')
 
-    await h
+    const commands = [{
+        name: "ping",
+        description: "pong!"
+    }]
+
+    await client.application.commands.set(commands, process.env.GI)
     console.log('Command Registed!')
 })
 
-/**
- * 문서 안보고 빠르게 쓰기: ctrl + 클릭
- * public on<K extends keyof ClientEvents>(event: K, listener: (...args: ClientEvents[K]) => Awaitable<void>): this;
- * public on<S extends string | symbol>(
- *   event: Exclude<S, keyof ClientEvents>,
- *   listener: (...args: any[]) => Awaitable<void>,
- * ): this;
- * --
- * 문자열로 했으니까 2번를 보면
- * event에 'keyof ClientEvents'가 적혀있으니까 ClientEvents를 알아야 됨 > ctrl + 클릭
- * 'keyof'라고 되어 있으니까 key를 봐야 됨 -> key: value 구조
- */
-
-client.on('interactionCreate', (interaction) => {
-  /**
-   * interactionCreate: [interaction: Interaction];
-   * 해석
-   * key: interactionCreate
-   * value: interaction (type: Interaction)
-   * --
-   * interaction의 종류: https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type
-   */
-
-    if (!interaction.isCommand()) return
+client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isApplicationCommand()) return
 
     if (interaction.commandName === "ping") {
-        interaction.reply('pong!!')
         /**
-         * reply에 ctrl + 클릭 > options: string | MessagePayload | InteractionReplyOptions
-         * 해석: 문자열 또는 MessagePayload 또는 InteractionReplyOptions 를 쓸 수 있음
+         * while 문은 보통 잘 안써
+         * 함수 하나를 만들어서 재귀를 하는것이 보통 개발자들이 하는 방법
+         * 
+         * 재귀함수: 자기 자시을 호출하는 함수(ex. 파보나치 수열, 펙토리얼 계산)
          */
+        while (true) {
+            /*
+             * Message Component: 버튼, 드롭박스 ...
+             * 설명: https://discord.com/developers/docs/interactions/message-components#what-is-a-component
+             * EX]
+             * 최상위 필드
+             * | 버튼 | 버튼 | 버튼 | < Action Row (한 줄)
+             * | 버튼 | 버튼 | 버튼 | < Action Row
+             */
+
+            // 만약 이미 대답한 인터렉션이라면? 수정만 하기, 아니면 새로 대답하기
+            interaction[interaction.replied ? 'editReply' : 'reply']({ // 삼항연산자 - 조건문 ? 참 : 거짓
+                content: `pong!! ${client.ws.ping}ms`,
+                components: [{ // 최상위 필드
+                    type: 'ACTION_ROW', // 액션 로우
+                    components: [{
+                        type: 'BUTTON',
+                        label: '다시 측정하기!',
+                        customId: 'retry_ping_' + interaction.id, // 내부에서 구분하기 위한 id 
+                        /**
+                         * 같은 id로 만들면 이미 완료되어서 ACK 신호가 날아간 버튼으로 ACK 신호를 날려서 오류가 발생함
+                         * interaction.id : 디스코드 자체에서 DB 관리를 위해 만든 ID (API/Discord.js X)
+                         */
+                        style: 'SUCCESS'
+                    }]
+                }]
+            })
+
+            try {
+                /**
+                 * awaitMessageComponent()
+                 * 인터렉션이 발생할때까지 기다리기
+                 * 
+                 * 필터:
+                 * componentType이 버튼인것
+                 * custom_id를 확인해 전에 만들었던 버튼인지 확인
+                 * 
+                 * (보통 다른 봇들은 명령어를 쳤던 사람만 이 버튼을 누를수 있도록 사용자를 확인하는 필터를 더 추가함) << 이건 어떻게 해??
+                 * 
+                 * 타임 제한 10초
+                 * 
+                 * 제한 초과시 에러 발생 ==> catch 문으로 이동
+                 */
+
+                while (true) {
+                    const i = await interaction.channel.awaitMessageComponent({
+                        componentType: 'BUTTON',
+                        filter: (i) =>
+                            i.customId === 'retry_ping_' + interaction.id, // 전에 만들었던 버튼인지 확인
+                        time: 10 * 1000 // (단위: ms) == 10초
+                    })
+
+                    if (i.user.id === interaction.user.id) { // 전에 만들었던 버튼의 사용자인지 확인
+                        i.reply('다시 측정했어요!')
+                        break
+                    }
+                    i.reply('잘못된 사용자입니다.')
+                }
+            } catch (_) {
+                /**
+                 * 여기로 올 수 있는 경우
+                 * 1. 타임아웃 -> 에러
+                 * 2. 10초 뒤 사용자가 버튼을 눌렀을 때
+                 * ==> catch()로 잡음
+                 */
+
+                interaction.editReply({
+                    components: [] // 컴포넌트 삭제
+                })
+                break
+            }
+        }
     }
 })
 
